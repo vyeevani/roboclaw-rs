@@ -224,7 +224,13 @@ impl <S: SerialPort + Sized> Roboclaw<S> {
         if crc_read == crc_calc {
             Ok(buf)
         } else {
-            Err(std::io::Error::new(std::io::ErrorKind::Other, "crc error"))
+            Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "crc error: expected {:04X}, got {:04X} (command_code: 0x{:02X}, data: {:02X?})",
+                    crc_calc, crc_read, command_code, buf
+                ),
+            ))
         }
     }
 
@@ -240,7 +246,10 @@ impl <S: SerialPort + Sized> Roboclaw<S> {
         } else {
             Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
-                "return value error",
+                format!(
+                    "return value error: expected 0xFF, got 0x{:02X} (command_code: 0x{:02X})",
+                    buf[0], command_code
+                ),
             ))
         }
     }
@@ -259,7 +268,10 @@ impl <S: SerialPort + Sized> Roboclaw<S> {
         } else {
             Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
-                "return value error",
+                format!(
+                    "return value error: expected 0xFF, got 0x{:02X} (command_code: 0x{:02X}, data: {:02X?})",
+                    buf[0], command_code, data
+                ),
             ))
         }
     }
