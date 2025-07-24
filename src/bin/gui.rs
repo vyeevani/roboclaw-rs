@@ -1,8 +1,8 @@
 use eframe::egui;
-use serial::prelude::*;
 use std::io;
 use std::time::{Duration, Instant};
 use roboclaw::{Roboclaw, StatusFlags, ConfigFlags, BufferStatus};
+use serialport::{SerialPort, SerialPortType};
 
 pub struct RoboclawGUI {
     // Connection settings
@@ -29,8 +29,8 @@ pub struct RoboclawGUI {
     last_update: Instant,
     status_message: String,
     
-    // Connection state
-    roboclaw: Option<Roboclaw<serial::SystemPort>>,
+    // Connection state 
+    roboclaw: Option<Roboclaw>,
 }
 
 impl Default for RoboclawGUI {
@@ -63,44 +63,31 @@ impl RoboclawGUI {
     }
 
     fn connect(&mut self) {
-        match serial::open(&self.port_name) {
-            Ok(mut port) => {
-                // Increase timeout for more reliable communication
-                // if let Err(e) = port.set_timeout(Duration::from_millis(500)) {
-                //     self.status_message = format!("Failed to set timeout: {}", e);
-                //     return;
-                // }
-                
-                // if let Err(e) = port.configure(&serial::PortSettings {
-                    // baud_rate: serial::BaudRate::from_speed(self.baud_rate as usize),
-                    // char_size: serial::CharSize::Bits8,
-                    // parity: serial::Parity::ParityNone,
-                    // stop_bits: serial::StopBits::Stop1,
-                    // flow_control: serial::FlowControl::FlowNone,
-                // }) {
-                //     self.status_message = format!("Failed to configure port: {}", e);
-                //     return;
-                // }
+        let port = serialport::new(&self.port_name, self.baud_rate)
+            .timeout(Duration::from_millis(500))
+            .open()
+            .map_err(|e| {
+                self.status_message = format!("Failed to open port: {}", e);
+            })
+            .ok();
 
-                self.roboclaw = Some(Roboclaw::new(port));
-                self.connected = true;
-                self.status_message = "Connected - Testing communication...".to_owned();
-                
-                // // Test basic communication immediately after connecting
-                // if let Some(ref mut roboclaw) = self.roboclaw {
-                //     match roboclaw.read_main_battery_voltage() {
-                //         Ok(voltage) => {
-                //             self.status_message = format!("✓ Connected and communicating - Battery: {:.1}V", voltage);
-                //         },
-                //         Err(e) => {
-                //             self.status_message = format!("⚠ Connected but communication error: {}", e);
-                //         }
-                //     }
-                // }
-            }
-            Err(e) => {
-                self.status_message = format!("Failed to connect: {}", e);
-            }
+        let roboclaw = port
+            .map(|port| Roboclaw::new(port));
+
+        if let Some(roboclaw) = roboclaw {
+            self.roboclaw = Some(roboclaw);
+            self.connected = true;
+            self.status_message = "Connected - Testing communication...".to_owned();
+            // Optionally, test communication here using map or and_then if needed
+            // self.roboclaw.as_mut().and_then(|roboclaw| {
+            //     roboclaw.read_main_battery_voltage().map(|voltage| {
+            //         self.status_message = format!("✓ Connected and communicating - Battery: {:.1}V", voltage);
+            //     }).map_err(|e| {
+            //         self.status_message = format!("⚠ Connected but communication error: {}", e);
+            //     }).ok()
+            // });
+        } else if self.status_message.is_empty() {
+            self.status_message = "Failed to initialize Roboclaw".to_owned();
         }
     }
 
@@ -278,14 +265,6 @@ fn show_config_flags(ui: &mut egui::Ui, config_flags: &ConfigFlags) {
         (ConfigFlags::BAUDRATE_230400, "Baudrate 230400"),
         (ConfigFlags::BAUDRATE_460800, "Baudrate 460800"),
         (ConfigFlags::FLIPSWITCH, "Flip Switch"),
-        (ConfigFlags::PACKET_ADDRESS_0x80, "Packet Address 0x80"),
-        (ConfigFlags::PACKET_ADDRESS_0x81, "Packet Address 0x81"),
-        (ConfigFlags::PACKET_ADDRESS_0x82, "Packet Address 0x82"),
-        (ConfigFlags::PACKET_ADDRESS_0x83, "Packet Address 0x83"),
-        (ConfigFlags::PACKET_ADDRESS_0x84, "Packet Address 0x84"),
-        (ConfigFlags::PACKET_ADDRESS_0x85, "Packet Address 0x85"),
-        (ConfigFlags::PACKET_ADDRESS_0x86, "Packet Address 0x86"),
-        (ConfigFlags::PACKET_ADDRESS_0x87, "Packet Address 0x87"),
         (ConfigFlags::SLAVE_MODE, "Slave Mode"),
         (ConfigFlags::RELAY_MODE, "Relay Mode"),
         (ConfigFlags::SWAP_ENCODERS, "Swap Encoders"),
