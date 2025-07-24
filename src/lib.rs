@@ -215,6 +215,7 @@ impl Roboclaw {
     fn read_command(&mut self, command_code: u8, num_bytes: usize) -> std::io::Result<Vec<u8>> {
         const CRC_SIZE: usize = 2;
         let command = vec![ADDRESS, command_code];
+        self.port.clear(serialport::ClearBuffer::All)?;
         self.port.write_all(&command[..])?;
         let mut buf = vec![0; num_bytes + CRC_SIZE];
         self.port.read_exact(&mut buf)?;
@@ -586,7 +587,7 @@ impl Roboclaw {
 
     //uint16_t ReadError(uint8_t address,bool *valid=NULL);
     pub fn read_error(&mut self) -> Result<StatusFlags, std::io::Error> {
-        self.read_command(Command::GETERROR as u8, 2)
+        self.read_command(Command::GETERROR as u8, 4)
             .map(|data| StatusFlags::from_bits(join_u8(data[0], data[1])).unwrap())
     }
 

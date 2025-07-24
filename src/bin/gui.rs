@@ -64,7 +64,7 @@ impl RoboclawGUI {
 
     fn connect(&mut self) {
         let port = serialport::new(&self.port_name, self.baud_rate)
-            .timeout(Duration::from_millis(500))
+            .timeout(Duration::from_millis(10))
             .open()
             .map_err(|e| {
                 self.status_message = format!("Failed to open port: {}", e);
@@ -162,15 +162,15 @@ impl RoboclawGUI {
             
             // Update readings periodically
             if self.last_update.elapsed() > polling_interval {
-                // // Read battery voltages
-                // if let Ok(voltage) = roboclaw.read_main_battery_voltage() {
-                //     self.main_battery_voltage = Some(voltage);
-                // } else {
-                //     // Don't overwrite motor control errors with battery read errors
-                //     if !self.status_message.contains("Motor control error") && !self.status_message.contains("Mixed control error") {
-                //         self.status_message = "Failed to read main battery voltage".to_owned();
-                //     }
-                // }
+                // Read battery voltages
+                if let Ok(voltage) = roboclaw.read_main_battery_voltage() {
+                    self.main_battery_voltage = Some(voltage);
+                } else {
+                    // Don't overwrite motor control errors with battery read errors
+                    if !self.status_message.contains("Motor control error") && !self.status_message.contains("Mixed control error") {
+                        self.status_message = "Failed to read main battery voltage".to_owned();
+                    }
+                }
                 
                 if let Ok(voltage) = roboclaw.read_logic_battery_voltage() {
                     self.logic_battery_voltage = Some(voltage);
