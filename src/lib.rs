@@ -43,24 +43,32 @@ bitflags! {
 }
 
 bitflags! {
-    pub struct StatusFlags: u16 {
-        const NORMAL = 0x0000;
-        const M1_OVERCURRENT_WARNING = 0x0001;
-        const M2_OVERCURRENT_WARNING = 0x0002;
-        const E_STOP = 0x0004;
-        const TEMPERATURE_ERROR = 0x0008;
-        const TEMPERATURE2_ERROR = 0x0010;
-        const MAIN_BATTERY_HIGH_ERROR = 0x0020;
-        const LOGIC_BATTERY_HIGH_ERROR = 0x0040;
-        const LOGIC_BATTERY_LOW_ERROR = 0x0080;
-        const M1_DRIVER_FAULT = 0x0100;
-        const M2_DRIVER_FAULT = 0x0200;
-        const MAIN_BATTERY_HIGH_WARNING = 0x0400;
-        const MAIN_BATTERY_LOW_WARNING = 0x0800;
-        const TERMPERATURE_WARNING = 0x1000;
-        const TEMPERATURE2_WARNING = 0x2000;
-        const M1_HOME = 0x4000;
-        const M2_HOME = 0x8000;
+    pub struct StatusFlags: u32 {
+        const NORMAL = 0x000000;
+        const E_STOP = 0x000001;
+        const TEMPERATURE_ERROR = 0x000002;
+        const TEMPERATURE2_ERROR = 0x000004;
+        const MAIN_VOLTAGE_HIGH_ERROR = 0x000008;
+        const LOGIC_VOLTAGE_HIGH_ERROR = 0x000010;
+        const LOGIC_VOLTAGE_LOW_ERROR = 0x000020;
+        const M1_DRIVER_FAULT_ERROR = 0x000040;
+        const M2_DRIVER_FAULT_ERROR = 0x000080;
+        const M1_SPEED_ERROR = 0x000100;
+        const M2_SPEED_ERROR = 0x000200;
+        const M1_POSITION_ERROR = 0x000400;
+        const M2_POSITION_ERROR = 0x000800;
+        const M1_CURRENT_ERROR = 0x001000;
+        const M2_CURRENT_ERROR = 0x002000;
+        const M1_OVERCURRENT_WARNING = 0x010000;
+        const M2_OVERCURRENT_WARNING = 0x020000;
+        const MAIN_VOLTAGE_HIGH_WARNING = 0x040000;
+        const MAIN_VOLTAGE_LOW_WARNING = 0x080000;
+        const TEMPERATURE_WARNING = 0x100000;
+        const TEMPERATURE2_WARNING = 0x200000;
+        const S4_SIGNAL_TRIGGERED = 0x400000;
+        const S5_SIGNAL_TRIGGERED = 0x800000;
+        const SPEED_ERROR_LIMIT_WARNING = 0x01000000;
+        const POSITION_ERROR_LIMIT_WARNING = 0x02000000;
     }
 }
 
@@ -588,7 +596,7 @@ impl Roboclaw {
     //uint16_t ReadError(uint8_t address,bool *valid=NULL);
     pub fn read_error(&mut self) -> Result<StatusFlags, std::io::Error> {
         self.read_command(Command::GETERROR as u8, 4)
-            .map(|data| StatusFlags::from_bits(join_u8(data[0], data[1])).unwrap())
+            .map(|data| StatusFlags::from_bits(join_u8_u32(data[0], data[1], data[2], data[3])).unwrap())
     }
 
     /*
